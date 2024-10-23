@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "7cO/RMxDmZ+knP0BuFPDVZw2C6+btVnbZZ6uTe45cp3ThniaiwSLM3G4ZZcXaXII/xqkXZ+h0bZot3zTvic6nw==",
+  "success": true,
+  "projectFilePath": "/home/knc/Documents/Programming/csharp_projects/bitboard/bitboard.csproj",
+  "expectedPackageFiles": [
+    "/home/knc/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.8/microsoft.aspnetcore.app.ref.8.0.8.nupkg.sha512"
+  ],
+  "logs": []
+}

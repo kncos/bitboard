@@ -1,0 +1,14 @@
+/home/knc/Documents/Programming/csharp_projects/bitboard/bin/Debug/net8.0/bitboard
+/home/knc/Documents/Programming/csharp_projects/bitboard/bin/Debug/net8.0/bitboard.deps.json
+/home/knc/Documents/Programming/csharp_projects/bitboard/bin/Debug/net8.0/bitboard.runtimeconfig.json
+/home/knc/Documents/Programming/csharp_projects/bitboard/bin/Debug/net8.0/bitboard.dll
+/home/knc/Documents/Programming/csharp_projects/bitboard/bin/Debug/net8.0/bitboard.pdb
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/bitboard.GeneratedMSBuildEditorConfig.editorconfig
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/bitboard.AssemblyInfoInputs.cache
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/bitboard.AssemblyInfo.cs
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/bitboard.csproj.CoreCompileInputs.cache
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/bitboard.dll
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/refint/bitboard.dll
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/bitboard.pdb
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/bitboard.genruntimeconfig.cache
+/home/knc/Documents/Programming/csharp_projects/bitboard/obj/Debug/net8.0/ref/bitboard.dll
