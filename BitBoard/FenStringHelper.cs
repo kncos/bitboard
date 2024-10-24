@@ -1,11 +1,106 @@
 
+using System.Net;
 using System.Security.Principal;
+using System.Text;
 
 namespace Chess.Board.BitBoard
 {
-    class FenStringParser
+    static class FenStringHelper
     {
-        public static BitBoardPieces? ParsePieceData(string pieceData) 
+        
+        public static string ToFenString(this BitBoard bb)
+        {
+            return ToFenPieceData(bb.Pieces) + " " + ToFenStateData(bb.State);
+        }
+
+        public static string ToFenPieceData(this BitBoardPieces pieces)
+        {
+            char[,] board = pieces.ToCharBoard();
+
+            // converting the character board into FEN position notation
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 8; i++)
+            {
+                int spaces = 0;
+                for (int j = 0; j < 8; j++)
+                {
+                    // count spaces
+                    if (board[i,j] == ' ') {
+                        spaces += 1;
+                        continue;
+                    }
+
+                    // encountered a non space. Append number of
+                    // spaces to the left of it
+                    if (spaces != 0) 
+                        sb.Append(spaces.ToString());
+
+                    // add piece to board
+                    sb.Append(board[i,j]);
+                }
+
+                // will include any right trailing spaces
+                if (spaces != 0)
+                    sb.Append(spaces.ToString());
+
+                // slash to divide ranks
+                sb.Append('/');
+            } 
+
+            // trailing slash, remove it
+            sb.Length -= 1;
+            return sb.ToString();
+        }
+
+        public static string ToFenStateData(this BitBoardState state)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            if (state.WhiteActive)
+                sb.Append("w ");
+            else
+                sb.Append("b ");
+
+            StringBuilder castling = new StringBuilder();
+            if (state.WhiteKingside)
+                castling.Append("K");
+            if (state.WhiteQueenside)
+                castling.Append("Q");
+            if (state.BlackKingside)
+                castling.Append("k");
+            if (state.BlackQueenside)
+                castling.Append("q");
+
+            if (castling.Length == 0)
+                sb.Append("- ");
+            else
+                sb.Append($"{castling.ToString()} ");
+
+            sb.Append($"{BitBoardMasks.MaskToAlgebraicNotation(state.EnPassantTarget)} ");
+
+            sb.Append($"{state.HalfmoveClock.ToString()} ");
+            sb.Append($"{state.FullmoveCount.ToString()}");
+
+            return sb.ToString();
+        }
+
+        public static BitBoard ParseFenString(string fen)
+        {
+            string[] parts = fen.Split(' ', 2);
+            if (parts.Length != 2)
+                throw new ArgumentException($"Invalid FEN String. Did not split into 2 parts. Got {parts} from {fen}");
+
+            try 
+            {
+                return new BitBoard(ParsePieceData(parts[0]), ParseStateData(parts[1]));
+            } 
+            catch (ArgumentException ex)
+            {
+                throw new ArgumentException($"From fen: {fen}\n{ex.Message}");
+            }
+        }
+
+        public static BitBoardPieces ParsePieceData(string pieceData) 
         {
             string baseErr = "Invalid FEN position data";
             BitBoardPieces bbpieces = new BitBoardPieces();

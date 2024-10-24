@@ -17,6 +17,21 @@ namespace Chess.Board.BitBoard
             return (row, col);
         }
 
+        public static List<(int row, int col)> MaskToCoordinates(ulong mask)
+        {
+            var res = new List<(int row, int col)>();
+            for (int i = 0; i < 64; i++)
+            {
+                if ((mask & (1UL << i)) != 0) 
+                {
+                    var c = MaskToCoordinate(1UL << i);
+                    if (c.HasValue)
+                        res.Add(c.Value);
+                }
+            }
+            return res;
+        }
+
         public static ulong? CoordinateToMask(int row, int col) 
         {
             if (row < 0 || 7 < row || col < 0 || 7 < col)
@@ -40,6 +55,19 @@ namespace Chess.Board.BitBoard
             return CoordinateToMask(row, col);
         }
 
+        public static string MaskToAlgebraicNotation(ulong mask)
+        {
+            var c = MaskToCoordinate(mask);
+            if (!c.HasValue)
+                return "-";
+
+            var coord = c.Value;
+            
+            char row = (char)('8' - coord.row);
+            char col = (char)('a' + coord.col);
+            return $"{col}{row}";
+        }
+
         public static ulong AllPositionsMask(this BitBoardPieces bb) {
             return bb.WhitePositionsMask() | bb.BlackPositionsMask();
         }
@@ -50,6 +78,16 @@ namespace Chess.Board.BitBoard
 
         public static ulong BlackPositionsMask(this BitBoardPieces bb) {
             return bb.BlackBishop | bb.BlackKing | bb.BlackKnight | bb.BlackPawn | bb.BlackQueen | bb.BlackRook;
+        }
+
+        public static bool HasOverlappingPieces(this BitBoardPieces bb) {
+            ulong mask = 0xFFFFFFFFFFFFFFFF;
+
+            foreach (ulong m in bb.AllPieces) {
+                mask = mask & m;
+            }
+
+            return (mask != 0);
         }
     }
 }

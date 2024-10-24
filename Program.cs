@@ -1,11 +1,9 @@
 ﻿
-using System.Numerics;
+using Chess.Board.BitBoard;
 
-int inc = 5;
-int x = 0;
-while (true)
-{
-    x += inc;
-    Console.WriteLine($"the number is: {x}");
-    Thread.Sleep(500);
-}
+BitBoard bb = FenStringHelper.ParseFenString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+Console.WriteLine(bb.Pieces);
+Console.WriteLine(FenStringHelper.ToFenString(bb));
+
+Console.WriteLine(new BitBoard().Pieces);
+Console.WriteLine(FenStringHelper.ToFenString(new BitBoard()));
