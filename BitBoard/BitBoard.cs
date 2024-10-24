@@ -3,9 +3,10 @@ namespace Chess.Board.BitBoard
 {
     class BitBoard
     {
-        public required BitBoardPieces Pieces;
-        public required BitBoardState State;
+        public required BitBoardPieces Pieces = new();
+        public required BitBoardState State = new();
 
+        public BitBoard() {}
         
     }
 }

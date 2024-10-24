@@ -25,6 +25,21 @@ namespace Chess.Board.BitBoard
             return (1UL << ((row * 8) + col));
         }
 
+        public static ulong? AlgebraicNotationToMask(string coord)
+        {
+            // col 0 is 'a', col 7 is 'h'
+            // row 0 is '8', row 7 is '1'
+
+            if (coord[0] < 'a' || 'h' < coord[0])
+                return null;
+            if (coord[1] < '1' || '8' < coord[1])
+                return null;
+
+            int row = '8' - coord[1]; // 8 - 1 = 7
+            int col = coord[0] - 'a'; // h - a = 7
+            return CoordinateToMask(row, col);
+        }
+
         public static ulong AllPositionsMask(this BitBoardPieces bb) {
             return bb.WhitePositionsMask() | bb.BlackPositionsMask();
         }
