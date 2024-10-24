@@ -1,20 +1,26 @@
-using System.Numerics;
-namespace Chess.Board {
-    struct BitBoardPieces {
+namespace Chess.Board.BitBoard {
+    class BitBoardPieces {
+
+        private const ulong PawnRank   = 0xFF;
+        private const ulong RookRank   = 0b10000001;
+        private const ulong KnightRank = 0b01000010;
+        private const ulong BishopRank = 0b00100100;
+        private const ulong QueenRank  = 0b00010000;
+        private const ulong KingRank   = 0b00001000;
+
         // pieces
-        public UInt64[] Pieces = new UInt64[12];
-        public ref UInt64 BlackPawn   => ref Pieces[0];
-        public ref UInt64 BlackRook   => ref Pieces[1];
-        public ref UInt64 BlackKnight => ref Pieces[2];
-        public ref UInt64 BlackBishop => ref Pieces[3];
-        public ref UInt64 BlackQueen  => ref Pieces[4];
-        public ref UInt64 BlackKing   => ref Pieces[5];
-        public ref UInt64 WhitePawn   => ref Pieces[6];
-        public ref UInt64 WhiteRook   => ref Pieces[7];
-        public ref UInt64 WhiteKnight => ref Pieces[8];
-        public ref UInt64 WhiteBishop => ref Pieces[9];
-        public ref UInt64 WhiteQueen  => ref Pieces[10];
-        public ref UInt64 WhiteKing   => ref Pieces[11];
+        public ulong BlackPawn   = PawnRank << 8;
+        public ulong BlackRook   = RookRank;
+        public ulong BlackKnight = KnightRank;
+        public ulong BlackBishop = BishopRank;
+        public ulong BlackQueen  = QueenRank;
+        public ulong BlackKing   = KingRank;
+        public ulong WhitePawn   = PawnRank << 48;
+        public ulong WhiteRook   = RookRank << 56;
+        public ulong WhiteKnight = KnightRank << 56;
+        public ulong WhiteBishop = BishopRank << 56;
+        public ulong WhiteQueen  = QueenRank << 56;
+        public ulong WhiteKing   = KingRank << 56;
 
         public BitBoardPieces() {}
     }
