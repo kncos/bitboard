@@ -7,7 +7,6 @@ namespace Chess.Board.BitBoard
 {
     static class FenStringHelper
     {
-        
         public static string ToFenString(this BitBoard bb)
         {
             return ToFenPieceData(bb.Pieces) + " " + ToFenStateData(bb.State);
@@ -32,16 +31,20 @@ namespace Chess.Board.BitBoard
 
                     // encountered a non space. Append number of
                     // spaces to the left of it
-                    if (spaces != 0) 
+                    if (spaces != 0) {
                         sb.Append(spaces.ToString());
+                        spaces = 0;
+                    }
 
                     // add piece to board
                     sb.Append(board[i,j]);
                 }
 
                 // will include any right trailing spaces
-                if (spaces != 0)
+                if (spaces != 0) {
                     sb.Append(spaces.ToString());
+                    spaces = 0;
+                }
 
                 // slash to divide ranks
                 sb.Append('/');

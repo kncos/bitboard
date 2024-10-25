@@ -2,6 +2,11 @@ using System.Collections;
 using System.Text;
 
 namespace Chess.Board.BitBoard {
+    enum PieceType {
+        BlackPawn = 0, BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing,
+        WhitePawn, WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing,
+    }
+
     class BitBoardPieces {
         private const ulong PawnRank   = 0xFF;
         private const ulong RookRank   = 0b10000001;
@@ -13,18 +18,44 @@ namespace Chess.Board.BitBoard {
         public ulong[] PiecesArr { get; private set; } = new ulong[12];
 
         // PiecesArr
-        public ref ulong BlackPawn   => ref PiecesArr[0];
-        public ref ulong BlackRook   => ref PiecesArr[1];
-        public ref ulong BlackKnight => ref PiecesArr[2];
-        public ref ulong BlackBishop => ref PiecesArr[3];
-        public ref ulong BlackQueen  => ref PiecesArr[4];
-        public ref ulong BlackKing   => ref PiecesArr[5];
-        public ref ulong WhitePawn   => ref PiecesArr[6];
-        public ref ulong WhiteRook   => ref PiecesArr[7];
-        public ref ulong WhiteKnight => ref PiecesArr[8];
-        public ref ulong WhiteBishop => ref PiecesArr[9];
-        public ref ulong WhiteQueen  => ref PiecesArr[10];
-        public ref ulong WhiteKing   => ref PiecesArr[11];
+        public ref ulong BlackPawn   => ref FromPieceType(PieceType.BlackPawn);
+        public ref ulong BlackRook   => ref FromPieceType(PieceType.BlackRook);
+        public ref ulong BlackKnight => ref FromPieceType(PieceType.BlackKnight);
+        public ref ulong BlackBishop => ref FromPieceType(PieceType.BlackBishop);
+        public ref ulong BlackQueen  => ref FromPieceType(PieceType.BlackQueen);
+        public ref ulong BlackKing   => ref FromPieceType(PieceType.BlackKing);
+        public ref ulong WhitePawn   => ref FromPieceType(PieceType.WhitePawn);
+        public ref ulong WhiteRook   => ref FromPieceType(PieceType.WhiteRook);
+        public ref ulong WhiteKnight => ref FromPieceType(PieceType.WhiteKnight);
+        public ref ulong WhiteBishop => ref FromPieceType(PieceType.WhiteBishop);
+        public ref ulong WhiteQueen  => ref FromPieceType(PieceType.WhiteQueen);
+        public ref ulong WhiteKing   => ref FromPieceType(PieceType.WhiteKing);
+
+        // get piece from enum
+        public ref ulong FromPieceType(PieceType p) => ref PiecesArr[(int)p];
+
+        public static PieceType? ToPieceType(int i) => (0 <= i && i < 12) ? (PieceType)i : null;
+
+        public PieceType? PieceTypeAtCoordinate(ulong pos)
+        {
+            if ((pos & (pos-1)) != 0)
+                return null;
+
+            for (int i = 0; i < PiecesArr.Length; i++)
+                if ((pos & PiecesArr[i]) != 0)
+                    return ToPieceType(i);
+
+            return null;
+        }
+
+        public PieceType? PieceTypeAtCoordinate(int row, int col)
+        {
+            ulong? mask = BitBoardMasks.CoordinateToMask(row, col);
+            if (!mask.HasValue)
+                return null;
+
+            return PieceTypeAtCoordinate(mask.Value);
+        }
 
         public BitBoardPieces() {}
 
@@ -77,7 +108,7 @@ namespace Chess.Board.BitBoard {
                     board[i,j] = ' ';
 
             // iterate through each piece type
-            for (int i = 0; i < 12; i++)
+            for (int i = 0; i < PiecesArr.Length; i++)
             {
                 // get all coordinates of that type
                 var coords = BitBoardMasks.MaskToCoordinates(PiecesArr[i]);
@@ -85,20 +116,22 @@ namespace Chess.Board.BitBoard {
                 foreach (var coord in coords)
                 {
                     // add the appropriate letter to the character board
-                    switch(i) 
+                    switch(ToPieceType(i)) 
                     {
-                        case 0: board[coord.row,coord.col]  = 'p'; break;
-                        case 1: board[coord.row,coord.col]  = 'r'; break;
-                        case 2: board[coord.row,coord.col]  = 'n'; break;
-                        case 3: board[coord.row,coord.col]  = 'b'; break;
-                        case 4: board[coord.row,coord.col]  = 'q'; break;
-                        case 5: board[coord.row,coord.col]  = 'k'; break;
-                        case 6: board[coord.row,coord.col]  = 'P'; break;
-                        case 7: board[coord.row,coord.col]  = 'R'; break;
-                        case 8: board[coord.row,coord.col]  = 'N'; break;
-                        case 9: board[coord.row,coord.col]  = 'B'; break;
-                        case 10: board[coord.row,coord.col] = 'Q'; break;
-                        case 11: board[coord.row,coord.col] = 'K'; break;
+                        // black pieces
+                        case PieceType.BlackPawn:   board[coord.row,coord.col] = 'p'; break;
+                        case PieceType.BlackRook:   board[coord.row,coord.col] = 'r'; break;
+                        case PieceType.BlackKnight: board[coord.row,coord.col] = 'n'; break;
+                        case PieceType.BlackBishop: board[coord.row,coord.col] = 'b'; break;
+                        case PieceType.BlackQueen:  board[coord.row,coord.col] = 'q'; break;
+                        case PieceType.BlackKing:   board[coord.row,coord.col] = 'k'; break;
+                        // white pieces
+                        case PieceType.WhitePawn:   board[coord.row,coord.col] = 'P'; break;
+                        case PieceType.WhiteRook:   board[coord.row,coord.col] = 'R'; break;
+                        case PieceType.WhiteKnight: board[coord.row,coord.col] = 'N'; break;
+                        case PieceType.WhiteBishop: board[coord.row,coord.col] = 'B'; break;
+                        case PieceType.WhiteQueen:  board[coord.row,coord.col] = 'Q'; break;
+                        case PieceType.WhiteKing:   board[coord.row,coord.col] = 'K'; break;
                     }
                 }
             }

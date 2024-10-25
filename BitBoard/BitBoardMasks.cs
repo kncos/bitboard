@@ -6,6 +6,26 @@ namespace Chess.Board.BitBoard
 {
     static class BitBoardMasks 
     {
+        public static bool SetCoordinate(int row, int col, ref ulong bitmask)
+        {
+            ulong? rc = CoordinateToMask(row, col);
+            if (!rc.HasValue)
+                return false;
+
+            bitmask |= (rc.Value);
+            return true;
+        }
+
+        public static bool UnsetCoordinate(int row, int col, ref ulong bitmask)
+        {
+            ulong? rc = CoordinateToMask(row, col);
+            if (!rc.HasValue)
+                return false;
+
+            bitmask &= ~rc.Value;
+            return true;
+        }
+
         public static (int row, int col)? MaskToCoordinate(ulong mask)
         {
             if ((mask & (mask-1)) != 0 || (mask == 0))
@@ -88,6 +108,15 @@ namespace Chess.Board.BitBoard
             }
 
             return (mask != 0);
+        }
+    
+        public static (ulong WhitePushMask, ulong WhiteAttackMask) WhiteActionMasks(this BitBoardPieces bb)
+        {
+            ulong WhitePushMask = 0UL;
+            ulong WhiteAttackMask = 0UL;
+
+
+            return (WhitePushMask, WhiteAttackMask);
         }
     }
 }
