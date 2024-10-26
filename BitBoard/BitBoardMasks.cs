@@ -110,13 +110,11 @@ namespace Chess.Board.BitBoard
             return (mask != 0);
         }
     
-        public static (ulong WhitePushMask, ulong WhiteAttackMask) WhiteActionMasks(this BitBoardPieces bb)
-        {
-            ulong WhitePushMask = 0UL;
-            ulong WhiteAttackMask = 0UL;
-
-
-            return (WhitePushMask, WhiteAttackMask);
-        }
+//        public static (BitBoardPieces validMoves, BitBoardPieces blockedBy, BitBoardPieces canAttack) ActionMasks(this BitBoardPieces bb)
+//        {
+//
+//
+//            throw new NotImplementedException();    
+//        }
     }
 }

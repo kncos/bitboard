@@ -12,7 +12,14 @@ namespace Chess.Board.BitBoard
             return ToFenPieceData(bb.Pieces) + " " + ToFenStateData(bb.State);
         }
 
-        public static string ToFenPieceData(this BitBoardPieces pieces)
+        // This is a private method now because I realized it was convenient to reuse
+        // BitBoardPieces for purposes other than representing a valid chess board.
+        // For instance, it can be used to conveniently represent attack masks for
+        // each piece. However, this means that it doesn't always make sense to
+        // create FEN data from a bitboard. So, we'll only expose the ToFenString
+        // method which accepts a BitBoard, where BitBoard guarantees that its internal
+        // BitBoardPieces is a valid chess board.
+        private static string ToFenPieceData(this BitBoardPieces pieces)
         {
             char[,] board = pieces.ToCharBoard();
 
@@ -55,7 +62,10 @@ namespace Chess.Board.BitBoard
             return sb.ToString();
         }
 
-        public static string ToFenStateData(this BitBoardState state)
+        // it only makes sense to make this private as well since ToFenPieceData
+        // is private and I've settled on the design pattern of only exposing
+        // ToFenString and only accepting a full BitBoard object.
+        private static string ToFenStateData(this BitBoardState state)
         {
             StringBuilder sb = new StringBuilder();
 
