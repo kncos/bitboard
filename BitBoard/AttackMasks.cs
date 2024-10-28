@@ -140,7 +140,9 @@ namespace Chess.Board.BitBoard
                 (0, 1, 1),  // right
                 (0, -1, 1)  // left
             };
-            return CreateMask(king_pos, friendly_pieces, enemy_pieces, directions);
+            var masks = CreateMask(king_pos, friendly_pieces, enemy_pieces, directions);
+
+            return masks;
         }
 
         public static (ulong validMoves, ulong blockedBy, ulong canAttack) KnightMask(ulong knight_pos, ulong friendly_pieces, ulong enemy_pieces)
@@ -174,26 +176,46 @@ namespace Chess.Board.BitBoard
             ulong onestep = white ? pos >> 8 : pos << 8;
             ulong twostep = white ? pos >> 16 : pos << 16;
 
+            // so here, we only get the squares for "canAttack"
+            // because pawns can only move diagonally if capturing.
+            ulong captures = CreateMask(pos, friendly, enemy, white switch
+            {
+                // (row_dir, col_dir, steps)
+                true => new (int,int,int)[] {
+                    (-1, 1, 1),   // up right
+                    (-1, -1, 1),  // up left
+                },
+                false => new (int,int,int)[] {
+                    (1, 1, 1),    // down right
+                    (1, -1, 1),   // down left
+                }
+            }).canAttack;
+
             (ulong vm, ulong bb, ulong ca) masks;
 
-            // friendly piece directly in front. can't move 
+            // friendly piece directly in front. can't move forward.
+            // only valid moves are captures.
             if ((onestep & friendly) != 0)
-                masks = (0UL, onestep, 0UL);
-            // enemy piece directly in front. can capture
+                masks = (captures, onestep, captures);
+            // enemy piece directly in front. can't move. Could
+            // theoretically capture l/r diagonally
             else if ((onestep & enemy) != 0) 
-                masks = (onestep, 0UL, onestep);
+                masks = (captures, 0UL, captures);
             // nothing occluding, but can only take one step.
+            // captures are also possible if a piece is l/r diag
             else if (step == 1) 
-                masks = (onestep, 0UL, 0UL);
+                masks = (onestep | captures, 0UL, captures);
             // friendly piece blocking 2nd step
             else if ((twostep & friendly) != 0)
-                masks = (onestep, twostep, 0UL); 
-            // enemy piece can be captured on 2nd step
+                masks = (onestep | captures, twostep, captures); 
+            // enemy piece is on 2nd step blocking the way.
+            // only valid moves are forward or captures
             else if ((twostep & enemy) != 0)
-                masks = (onestep | twostep, 0UL, twostep);
-            // can take 2 steps, nothing occluding
+                masks = (onestep | captures, 0UL, captures);
+            // can take 2 steps, nothing occluding. Captures
+            // are also valid moves.
             else
-                masks = (onestep | twostep, 0UL, 0UL); 
+                masks = (onestep | twostep | captures, 0UL, captures); 
 
             // get coordinate of en passant target
             var ep_coord = BitBoardMasks.MaskToCoordinate(eptarget);
@@ -222,7 +244,7 @@ namespace Chess.Board.BitBoard
             // and it needs to be in the direction of advance, which
             // in this case, means ep_row should be greater than the
             // pawn's row by 1 (for black pawn).
-            if (!white && (ep_row - pawn_row != -1))
+            if (!white && (ep_row - pawn_row != 1))
                 return masks;
 
             // for white, ep row needs to be 1 less than pawn row

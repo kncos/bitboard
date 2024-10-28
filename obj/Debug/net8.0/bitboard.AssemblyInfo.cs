@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("bitboard")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+90e5b3b4d5b532b9315a911d98eff825aa54302f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5d36798d0a318b3422af16c11af87534d5286b5b")]
 [assembly: System.Reflection.AssemblyProductAttribute("bitboard")]
 [assembly: System.Reflection.AssemblyTitleAttribute("bitboard")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

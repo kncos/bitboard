@@ -6,24 +6,24 @@ namespace Chess.Board.BitBoard
 {
     static class BitBoardMasks 
     {
-        public static bool SetCoordinate(int row, int col, ref ulong bitmask)
+        public static void SetCoordinate(int row, int col, ref ulong bitmask)
         {
-            ulong? rc = CoordinateToMask(row, col);
-            if (!rc.HasValue)
-                return false;
-
-            bitmask |= (rc.Value);
-            return true;
+            bitmask |= CoordinateToMask(row, col) ?? 0UL;
         }
 
-        public static bool UnsetCoordinate(int row, int col, ref ulong bitmask)
+        public static void SetCoordinate(ulong pos, ref ulong bitmask)
         {
-            ulong? rc = CoordinateToMask(row, col);
-            if (!rc.HasValue)
-                return false;
+            bitmask |= pos;
+        }
 
-            bitmask &= ~rc.Value;
-            return true;
+        public static void UnsetCoordinate(int row, int col, ref ulong bitmask)
+        {
+            bitmask &= ~(CoordinateToMask(row, col) ?? 0UL);
+        }
+
+        public static void UnsetCoordinate(ulong pos, ref ulong bitmask)
+        {
+            bitmask &= ~pos;
         }
 
         public static (int row, int col)? MaskToCoordinate(ulong mask)

@@ -2,7 +2,7 @@
 namespace Chess.Board.BitBoard
 {
     enum PieceType {
-        BlackPawn = -1, BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing,
+        BlackPawn = 0, BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing,
         WhitePawn, WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing,
     }
 

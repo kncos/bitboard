@@ -4,8 +4,9 @@ using Chess.Board.BitBoard;
 
 string start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 string ep_pos1 = "rnbqkbnr/1ppppppp/8/p3P3/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1";
+string ep_pos2 = "rnbqkbnr/1pppp1pp/p4P2/8/5pP1/8/PPPP1P1P/RNBQKBNR w KQkq g3 0 1";
 
-BitBoard bb = FenStringHelper.ParseFenString(ep_pos1);
+BitBoard bb = FenStringHelper.ParseFenString(start_pos);
 Console.WriteLine(bb.Pieces);
 
 void printBitgrid(ulong grid) {
@@ -59,5 +60,5 @@ while (true)
     
     Console.WriteLine(bb.Pieces);
     Console.WriteLine(bb.ToFenString());
-    printBitgrid(bb.WhiteAttackMask().validMoves);
+    // printBitgrid(bb.WhiteAttackMask().validMoves);
 }

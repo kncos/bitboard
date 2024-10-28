@@ -16,14 +16,47 @@ namespace Chess.Board.BitBoard
 
         public bool Move(ulong startpos, ulong endpos)
         {
-            PieceType? startType = Pieces.PieceTypeAtCoordinate(startpos);
-            PieceType? endType = Pieces.PieceTypeAtCoordinate(endpos);
-
-            // no piece in start pos, nothing to move
-            if (!startType.HasValue)
+            // ? pattern matching with `is`
+            if (Pieces.PieceTypeAtCoordinate(startpos) is not PieceType startType)
                 return false;
 
+            if (startType.IsWhite() != State.WhiteActive)
+                return false;
 
+            PieceType? endType = Pieces.PieceTypeAtCoordinate(endpos);
+
+            // get friendly/enemy piece masks
+            ulong friendly = startType.IsWhite() ? BitBoardMasks.WhitePositionsMask(Pieces) : BitBoardMasks.BlackPositionsMask(Pieces);
+            ulong enemy = startType.IsWhite() ? BitBoardMasks.BlackPositionsMask(Pieces) : BitBoardMasks.WhitePositionsMask(Pieces);
+
+            var masks = AttackMasks.PieceTypeMask(startType, startpos, friendly, enemy, State.EnPassantTarget);
+
+            // invalid move. Can't reach end position
+            if ((endpos & masks.validMoves) == 0)
+                return false;
+            
+            // handle en passant
+            State.EnPassantTarget = 0UL; // reset to 0 since we already got masks.
+
+            if ((startType == PieceType.BlackPawn) && ((endpos >> 16) == startpos))
+                State.EnPassantTarget = endpos >> 8; // 1 row above
+
+            if ((startType == PieceType.WhitePawn) && ((endpos << 16) == startpos))
+                State.EnPassantTarget = endpos << 8; // 1 row below
+
+            // assign new piece places
+            BitBoardMasks.UnsetCoordinate(startpos, ref Pieces.FromPieceType(startType));
+            BitBoardMasks.SetCoordinate(endpos, ref Pieces.FromPieceType(startType));
+
+            // if there was something at the old end coordinate, remove it
+            if (endType.HasValue)
+                BitBoardMasks.UnsetCoordinate(endpos, ref Pieces.FromPieceType(endType.Value));
+
+            // update full move clock after black's turn
+            if (!startType.IsWhite())
+                State.FullmoveCount += 1;
+
+            State.WhiteActive = !State.WhiteActive;
             return true;
         }
 
