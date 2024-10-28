@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Chess.Board.BitBoard {
@@ -56,6 +57,16 @@ namespace Chess.Board.BitBoard {
 
             return PieceTypeAtCoordinate(mask.Value);
         }
+
+        // new ability unlocked, pattern matching
+        public bool isWhitePiece(PieceType pieceType) => pieceType switch 
+        {
+            // return true if it is a white piece
+            PieceType.WhitePawn or PieceType.WhiteRook or PieceType.WhiteKnight
+            or PieceType.WhiteBishop or PieceType.WhiteQueen or PieceType.WhiteKing => true,
+            // else return false
+            _ => false
+        };
 
         public BitBoardPieces() {}
 

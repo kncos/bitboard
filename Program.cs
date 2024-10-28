@@ -2,7 +2,10 @@
 using System.Text;
 using Chess.Board.BitBoard;
 
-BitBoard bb = FenStringHelper.ParseFenString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+string start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+string ep_pos1 = "rnbqkbnr/1ppppppp/8/p3P3/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1";
+
+BitBoard bb = FenStringHelper.ParseFenString(ep_pos1);
 Console.WriteLine(bb.Pieces);
 
 void printBitgrid(ulong grid) {
@@ -10,9 +13,9 @@ void printBitgrid(ulong grid) {
     for (int i = 0; i < 64; i++)
     {
         if ((grid >> i) % 2 == 1)
-            sb.Append("1");
+            sb.Append("[1] ");
         else
-            sb.Append("0");
+            sb.Append("[ ] ");
 
         if ((i+1) % 8 == 0)
             sb.Append('\n');
@@ -20,24 +23,16 @@ void printBitgrid(ulong grid) {
     Console.WriteLine(sb.ToString());
 }
 
-//printBitgrid(AttackMasks.RookMask(1UL << 47, 1UL << 44, 1UL << 15).validMoves);
-//printBitgrid(AttackMasks.RookMask(1UL << 47, 1UL << 44, 1UL << 15).blockedBy);
-//printBitgrid(AttackMasks.RookMask(1UL << 47, 1UL << 44, 1UL << 15).canAttack);
-//printBitgrid(AttackMasks.BishopMask(1UL << 36, 0UL, 0UL).validMoves);
-Console.WriteLine("Knight mask");
-printBitgrid(AttackMasks.KnightMask(1UL << 36, 0UL, 0UL).validMoves);
-Console.WriteLine("King mask");
-printBitgrid(AttackMasks.KingMask(1UL << 36, 0UL, 0UL).validMoves);
-Console.WriteLine("Queen mask");
-printBitgrid(AttackMasks.QueenMask(1UL << 36, 0UL, 0UL).validMoves);
-Console.WriteLine("Black Pawn (not starting rank) mask");
-printBitgrid(AttackMasks.BlackPawnMask(1UL << 36, 0UL, 0UL, 0UL).validMoves);
-Console.WriteLine("White Pawn (not starting rank) mask");
-printBitgrid(AttackMasks.WhitePawnMask(1UL << 36, 0UL, 0UL, 0UL).validMoves);
-Console.WriteLine("Black Pawn (starting rank) mask");
-printBitgrid(AttackMasks.BlackPawnMask(1UL << 8, 0UL, 0UL, 0UL).validMoves);
-Console.WriteLine("White Pawn (starting rank) mask");
-printBitgrid(AttackMasks.WhitePawnMask(1UL << 48, 0UL, 0UL, 0UL).validMoves);
+
+//ulong black_pawn = BitBoardMasks.AlgebraicNotationToMask("b4").Value;
+//ulong white_pawn = BitBoardMasks.AlgebraicNotationTo:w
+//Mask("a4").Value;
+//ulong ep_target = BitBoardMasks.AlgebraicNotationToMask("a3").Value;
+//var masks = AttackMasks.BlackPawnMask(black_pawn, 0UL, white_pawn, ep_target);
+//Console.WriteLine("attack squares");
+//printBitgrid(masks.validMoves);
+//Console.WriteLine("can attack");
+//printBitgrid(masks.canAttack);
 
 
 while (true)
@@ -60,7 +55,9 @@ while (true)
 
     if (sc.HasValue && ec.HasValue)
         bb.Move(sc.Value.row, sc.Value.col, ec.Value.row, ec.Value.col);
-
+    
+    
     Console.WriteLine(bb.Pieces);
     Console.WriteLine(bb.ToFenString());
+    printBitgrid(bb.WhiteAttackMask().validMoves);
 }

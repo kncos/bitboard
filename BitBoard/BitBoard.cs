@@ -19,9 +19,19 @@ namespace Chess.Board.BitBoard
             PieceType? startType = Pieces.PieceTypeAtCoordinate(start_row, start_col);
             PieceType? endType = Pieces.PieceTypeAtCoordinate(end_row, end_col);
 
+            ulong startpos = BitBoardMasks.CoordinateToMask(start_row, start_col) ?? 0UL;
+            ulong endpos = BitBoardMasks.CoordinateToMask(end_row, end_col) ?? 0UL;
+
             // no piece in start pos, nothing to move
             if (!startType.HasValue)
                 return false;
+
+
+            // ensure this move is a pseudo legal move for the start piece
+            var masks = AttackMasks.PieceTypeMask(startType, startpos, )
+
+
+
 
             // remove the start type from its start position 
             BitBoardMasks.UnsetCoordinate(start_row, start_col, ref Pieces.FromPieceType(startType.Value));

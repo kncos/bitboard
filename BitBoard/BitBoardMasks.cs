@@ -88,19 +88,23 @@ namespace Chess.Board.BitBoard
             return $"{col}{row}";
         }
 
-        public static ulong AllPositionsMask(this BitBoardPieces bb) {
+        public static ulong AllPositionsMask(this BitBoardPieces bb) 
+        {
             return bb.WhitePositionsMask() | bb.BlackPositionsMask();
         }
 
-        public static ulong WhitePositionsMask(this BitBoardPieces bb) {
+        public static ulong WhitePositionsMask(this BitBoardPieces bb) 
+        {
             return bb.WhiteBishop | bb.WhiteKing | bb.WhiteKnight | bb.WhitePawn | bb.WhiteQueen | bb.WhiteRook;
         }
 
-        public static ulong BlackPositionsMask(this BitBoardPieces bb) {
+        public static ulong BlackPositionsMask(this BitBoardPieces bb) 
+        {
             return bb.BlackBishop | bb.BlackKing | bb.BlackKnight | bb.BlackPawn | bb.BlackQueen | bb.BlackRook;
         }
 
-        public static bool HasOverlappingPieces(this BitBoardPieces bb) {
+        public static bool HasOverlappingPieces(this BitBoardPieces bb) 
+        {
             ulong mask = 0xFFFFFFFFFFFFFFFF;
 
             foreach (ulong m in bb.AllPieces) {
@@ -109,12 +113,6 @@ namespace Chess.Board.BitBoard
 
             return (mask != 0);
         }
-    
-//        public static (BitBoardPieces validMoves, BitBoardPieces blockedBy, BitBoardPieces canAttack) ActionMasks(this BitBoardPieces bb)
-//        {
-//
-//
-//            throw new NotImplementedException();    
-//        }
+
     }
 }

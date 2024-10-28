@@ -1,12 +1,32 @@
 
+using System.Net;
 using System.Numerics;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 
 namespace Chess.Board.BitBoard
 {
     static class AttackMasks
     {
+        /// <summary>
+        /// Traces a path along a bitboard, stopping before it encounters a friendly chess
+        /// piece that is blocking the path, or stopping at an enemy piece that can be captured.
+        /// DOES NOT include starting row/column in the returned mask, only the steps from 1.. onward
+        /// </summary>
+        /// <param name="friendly">bitmask representing locations of all friendly pieces on the bitboard</param>
+        /// <param name="enemy">bitmask representing locations of all enemy pieces on the bitboard</param>
+        /// <param name="r">row to start from (not included in the returned masks)</param>
+        /// <param name="dr">row differential, i.e. how many rows to travel in each step</param>
+        /// <param name="c">column to start from (not included in the returned masks)</param>
+        /// <param name="dc">column differential, i.e. how many columns to travel in each step</param>
+        /// <param name="num_steps">number of steps to take along this path</param>
+        /// <returns>
+        /// A tuple containing:
+        /// - <c>validMoves</c>, all moves along the path the piece can travel to
+        /// - <c>blockedBy</c>, friendly piece along the path that blocked it from going further, if there were any
+        /// - <c>canAttack</c>, enemy piece along the path that this piece can capture.
+        /// </returns>
         private static (ulong validMoves, ulong blockedBy, ulong canAttack) dirHelper(ulong friendly, ulong enemy, int r, int dr, int c, int dc, int num_steps)
         {
             ulong validMoves = 0UL, blockedBy = 0UL, canAttack = 0UL;
@@ -32,6 +52,25 @@ namespace Chess.Board.BitBoard
             return (validMoves, blockedBy, canAttack);
         }
 
+        /// <summary>
+        /// Given a list of directions, returns a bitmask representing all valid moves
+        /// a piece can make that travels in those directions, as well as what friendly
+        /// pieces are blocking the path, and what enemy pieces can be captured.
+        /// </summary>
+        /// <param name="pos">bitmask position of the chess piece</param>
+        /// <param name="friendly">bitmask position of all friendly pieces</param>
+        /// <param name="enemy">bitmask position of all enemy pieces</param>
+        /// <param name="dirs">
+        /// an array of <c>(int,int,int)</c> tuples representing row differential,
+        /// column differential, and number of steps to take. Basically, each direction
+        /// the chess piece can go in, and how far.
+        /// </param>
+        /// <returns>
+        /// A tuple contianing:
+        /// - <c>validMoves</c> a bitmask representing all valid positions the piece can travel to
+        /// - <c>blockedBy</c> a bitmask representing positions of all friendly pieces blocking the paths
+        /// - <c>canAttack</c> a bitmask representing positions of all enemy pieces that can be captured
+        /// </returns>
         private static (ulong validMoves, ulong blockedBy, ulong canAttack) CreateMask(ulong pos, ulong friendly, ulong enemy, (int row_dir, int col_dir, int steps)[] dirs)
         {
             var coord = BitBoardMasks.MaskToCoordinate(pos);
@@ -124,10 +163,10 @@ namespace Chess.Board.BitBoard
             
             int step = 1;
             // white pawn on starting rank
-            if (white && (pos & 0xFF << 48) != 0)
+            if (white && ((pos & (0xFFUL << 48)) != 0))
                 step = 2;
             // black pawn on starting rank
-            if (!white && (pos & 0xFF << 8) != 0)
+            if (!white && ((pos & (0xFFUL << 8)) != 0))
                 step = 2;
 
             // if white, we decrease the row by 1 or 2
@@ -138,7 +177,7 @@ namespace Chess.Board.BitBoard
             (ulong vm, ulong bb, ulong ca) masks;
 
             // friendly piece directly in front. can't move 
-            if ((onestep & friendly) != 0) 
+            if ((onestep & friendly) != 0)
                 masks = (0UL, onestep, 0UL);
             // enemy piece directly in front. can capture
             else if ((onestep & enemy) != 0) 
@@ -183,11 +222,11 @@ namespace Chess.Board.BitBoard
             // and it needs to be in the direction of advance, which
             // in this case, means ep_row should be greater than the
             // pawn's row by 1 (for black pawn).
-            if (!white && (ep_row - pawn_row != 1))
+            if (!white && (ep_row - pawn_row != -1))
                 return masks;
 
             // for white, ep row needs to be 1 less than pawn row
-            if (white && (pawn_row - ep_row != -1))
+            if (white && (pawn_row - ep_row != 1))
                 return masks;
 
             // pawn can move to the valid square
@@ -210,5 +249,81 @@ namespace Chess.Board.BitBoard
         {
             return PawnHelper(pawn_pos, friendly_pieces, enemy_pieces, en_passant_target, true);
         }
+
+        public static (ulong validMoves, ulong blockedBy, ulong canAttack) PieceTypeMask(PieceType type, ulong pos, ulong friendly_pieces, ulong enemy_pieces, ulong en_passant_target=0UL)
+        {
+            switch (type)
+            {
+                // handle rooks
+                case PieceType.BlackRook:
+                case PieceType.WhiteRook:
+                    return RookMask(pos, friendly_pieces, enemy_pieces);
+                // handle bishops
+                case PieceType.BlackBishop:
+                case PieceType.WhiteBishop:
+                    return BishopMask(pos, friendly_pieces, enemy_pieces);
+                // handle queens
+                case PieceType.BlackQueen:
+                case PieceType.WhiteQueen:
+                    return QueenMask(pos, friendly_pieces, enemy_pieces);
+                // handle kings
+                case PieceType.BlackKing:
+                case PieceType.WhiteKing:
+                    return KingMask(pos, friendly_pieces, enemy_pieces);
+                // handle knights
+                case PieceType.BlackKnight:
+                case PieceType.WhiteKnight:
+                    return KnightMask(pos, friendly_pieces, enemy_pieces);
+                // handle Black Pawns
+                case PieceType.BlackPawn:
+                    return BlackPawnMask(pos, friendly_pieces, enemy_pieces, en_passant_target);
+                // handle White Pawns
+                case PieceType.WhitePawn:
+                    return WhitePawnMask(pos, friendly_pieces, enemy_pieces, en_passant_target);
+                default:
+                    throw new ArgumentException("Invalid piece type received to PieceTypeAttackMask?");
+            }
+        }
+
+        private static (ulong valid, ulong blocking, ulong attacking) AttackMask(BitBoard bb, bool whiteActive)
+        {
+            // store the result here
+            (ulong v, ulong b, ulong a) res = (0UL, 0UL, 0UL); 
+            
+            // determine friendly/enemy pieces based on whether
+            // we're calculating white's mask or black's mask
+            ulong friendly = whiteActive ? bb.Pieces.WhitePositionsMask() : bb.Pieces.BlackPositionsMask();
+            ulong enemy = whiteActive ? bb.Pieces.BlackPositionsMask() : bb.Pieces.WhitePositionsMask();
+
+            // go through each of the board's 64 squares
+            for (int i = 0; i < 64; i++)
+            {
+                // position in the bitboard. 
+                ulong pos = 1UL << i;
+
+                // only consider friendly pieces. Can skip empty
+                // squares and enemy pieces for this logic.
+                if ((pos & friendly) == 0)
+                    continue;
+
+                // this should never be null in the context of this method,
+                // if it is there is a bug in this method or the bitboard method
+                var type_at = bb.Pieces.PieceTypeAtCoordinate(pos);
+                if (!type_at.HasValue)
+                    continue;
+
+                // combine mask for this piece into the total masks 
+                var masks = PieceTypeMask(type_at.Value, pos, friendly, enemy, bb.State.EnPassantTarget);
+                res.v |= masks.validMoves;
+                res.b |= masks.blockedBy;
+                res.a |= masks.canAttack;
+            }
+
+            return res;
+        }
+
+        public static (ulong validMoves, ulong blockedBy, ulong canAttack) WhiteAttackMask(this BitBoard bb) => AttackMask(bb, true);
+        public static (ulong validMoves, ulong blockedBy, ulong canAttack) BlackAttackMask(this BitBoard bb) => AttackMask(bb, false);
+
     }
 }
