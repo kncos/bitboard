@@ -3,11 +3,6 @@ using System.Security.Cryptography;
 using System.Text;
 
 namespace Chess.Board.BitBoard {
-    enum PieceType {
-        BlackPawn = 0, BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing,
-        WhitePawn, WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing,
-    }
-
     class BitBoardPieces {
         private const ulong PawnRank   = 0xFF;
         private const ulong RookRank   = 0b10000001;
@@ -44,7 +39,7 @@ namespace Chess.Board.BitBoard {
 
             for (int i = 0; i < PiecesArr.Length; i++)
                 if ((pos & PiecesArr[i]) != 0)
-                    return ToPieceType(i);
+                    return (PieceType)i;
 
             return null;
         }
@@ -57,16 +52,6 @@ namespace Chess.Board.BitBoard {
 
             return PieceTypeAtCoordinate(mask.Value);
         }
-
-        // new ability unlocked, pattern matching
-        public bool isWhitePiece(PieceType pieceType) => pieceType switch 
-        {
-            // return true if it is a white piece
-            PieceType.WhitePawn or PieceType.WhiteRook or PieceType.WhiteKnight
-            or PieceType.WhiteBishop or PieceType.WhiteQueen or PieceType.WhiteKing => true,
-            // else return false
-            _ => false
-        };
 
         public BitBoardPieces() {}
 
@@ -126,24 +111,26 @@ namespace Chess.Board.BitBoard {
                 // for each coordinate of this piece type
                 foreach (var coord in coords)
                 {
-                    // add the appropriate letter to the character board
-                    switch(ToPieceType(i)) 
+                    // add the appropriate letter to the character board.
+                    // ! new ability unlocked, pattern matching
+                    board[coord.row, coord.col] = ((PieceType)i) switch 
                     {
                         // black pieces
-                        case PieceType.BlackPawn:   board[coord.row,coord.col] = 'p'; break;
-                        case PieceType.BlackRook:   board[coord.row,coord.col] = 'r'; break;
-                        case PieceType.BlackKnight: board[coord.row,coord.col] = 'n'; break;
-                        case PieceType.BlackBishop: board[coord.row,coord.col] = 'b'; break;
-                        case PieceType.BlackQueen:  board[coord.row,coord.col] = 'q'; break;
-                        case PieceType.BlackKing:   board[coord.row,coord.col] = 'k'; break;
+                        PieceType.BlackPawn   => 'p',
+                        PieceType.BlackRook   => 'r',
+                        PieceType.BlackKnight => 'n',
+                        PieceType.BlackBishop => 'b',
+                        PieceType.BlackQueen  => 'q',
+                        PieceType.BlackKing   => 'k',
                         // white pieces
-                        case PieceType.WhitePawn:   board[coord.row,coord.col] = 'P'; break;
-                        case PieceType.WhiteRook:   board[coord.row,coord.col] = 'R'; break;
-                        case PieceType.WhiteKnight: board[coord.row,coord.col] = 'N'; break;
-                        case PieceType.WhiteBishop: board[coord.row,coord.col] = 'B'; break;
-                        case PieceType.WhiteQueen:  board[coord.row,coord.col] = 'Q'; break;
-                        case PieceType.WhiteKing:   board[coord.row,coord.col] = 'K'; break;
-                    }
+                        PieceType.WhitePawn   => 'P',
+                        PieceType.WhiteRook   => 'R',
+                        PieceType.WhiteKnight => 'N',
+                        PieceType.WhiteBishop => 'B',
+                        PieceType.WhiteQueen  => 'Q',
+                        PieceType.WhiteKing   => 'K',
+                        _ => throw new ArgumentOutOfRangeException(nameof(i), "Invalid Piece Type")
+                    };
                 }
             }
 
