@@ -307,45 +307,44 @@ namespace Chess.Board.BitBoard
             }
         }
 
-        private static (ulong valid, ulong blocking, ulong attacking) AttackMask(BitBoard bb, bool whiteActive)
-        {
-            // store the result here
-            (ulong v, ulong b, ulong a) res = (0UL, 0UL, 0UL); 
-            
-            // determine friendly/enemy pieces based on whether
-            // we're calculating white's mask or black's mask
-            ulong friendly = whiteActive ? bb.Pieces.WhitePositionsMask() : bb.Pieces.BlackPositionsMask();
-            ulong enemy = whiteActive ? bb.Pieces.BlackPositionsMask() : bb.Pieces.WhitePositionsMask();
-
-            // go through each of the board's 64 squares
-            for (int i = 0; i < 64; i++)
-            {
-                // position in the bitboard. 
-                ulong pos = 1UL << i;
-
-                // only consider friendly pieces. Can skip empty
-                // squares and enemy pieces for this logic.
-                if ((pos & friendly) == 0)
-                    continue;
-
-                // this should never be null in the context of this method,
-                // if it is there is a bug in this method or the bitboard method
-                var type_at = bb.Pieces.PieceTypeAtCoordinate(pos);
-                if (!type_at.HasValue)
-                    continue;
-
-                // combine mask for this piece into the total masks 
-                var masks = PieceTypeMask(type_at.Value, pos, friendly, enemy, bb.State.EnPassantTarget);
-                res.v |= masks.validMoves;
-                res.b |= masks.blockedBy;
-                res.a |= masks.canAttack;
-            }
-
-            return res;
-        }
-
-        public static (ulong validMoves, ulong blockedBy, ulong canAttack) WhiteAttackMask(this BitBoard bb) => AttackMask(bb, true);
-        public static (ulong validMoves, ulong blockedBy, ulong canAttack) BlackAttackMask(this BitBoard bb) => AttackMask(bb, false);
-
+//        private static (ulong valid, ulong blocking, ulong attacking) AttackMask(BitBoard bb, bool whiteActive)
+//        {
+//            // store the result here
+//            (ulong v, ulong b, ulong a) res = (0UL, 0UL, 0UL); 
+//            
+//            // determine friendly/enemy pieces based on whether
+//            // we're calculating white's mask or black's mask
+//            ulong friendly = whiteActive ? bb.Pieces.WhitePositionsMask() : bb.Pieces.BlackPositionsMask();
+//            ulong enemy = whiteActive ? bb.Pieces.BlackPositionsMask() : bb.Pieces.WhitePositionsMask();
+//
+//            // go through each of the board's 64 squares
+//            for (int i = 0; i < 64; i++)
+//            {
+//                // position in the bitboard. 
+//                ulong pos = 1UL << i;
+//
+//                // only consider friendly pieces. Can skip empty
+//                // squares and enemy pieces for this logic.
+//                if ((pos & friendly) == 0)
+//                    continue;
+//
+//                // this should never be null in the context of this method,
+//                // if it is there is a bug in this method or the bitboard method
+//                var type_at = bb.Pieces.PieceTypeAtCoordinate(pos);
+//                if (!type_at.HasValue)
+//                    continue;
+//
+//                // combine mask for this piece into the total masks 
+//                var masks = PieceTypeMask(type_at.Value, pos, friendly, enemy, bb.State.EnPassantTarget);
+//                res.v |= masks.validMoves;
+//                res.b |= masks.blockedBy;
+//                res.a |= masks.canAttack;
+//            }
+//
+//            return res;
+//        }
+//
+//        public static (ulong validMoves, ulong blockedBy, ulong canAttack) WhiteAttackMask(this BitBoard bb) => AttackMask(bb, true);
+//        public static (ulong validMoves, ulong blockedBy, ulong canAttack) BlackAttackMask(this BitBoard bb) => AttackMask(bb, false);
     }
 }

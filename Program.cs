@@ -38,27 +38,29 @@ void printBitgrid(ulong grid) {
 
 while (true)
 {
+
     string input = Console.ReadLine();
     if (String.Equals(input, "q"))
         break;
 
     string[] tokens = input.Split(' ');
-    if (tokens.Length != 2)
-        continue;
 
-    ulong? startMask = BitBoardMasks.AlgebraicNotationToMask(tokens[0]);
-    ulong? endMask = BitBoardMasks.AlgebraicNotationToMask(tokens[1]);
-    if (!startMask.HasValue || !endMask.HasValue)
-        continue;
+    if (tokens.Length == 1 && (tokens[0].Length == 4 || tokens[0].Length == 5)) {
+        ulong? startMask = BitBoardMasks.AlgebraicNotationToMask(tokens[0][0..2]);
+        ulong? endMask = BitBoardMasks.AlgebraicNotationToMask(tokens[0][2..4]);
+        if (!startMask.HasValue || !endMask.HasValue)
+            continue;
 
-    var sc = BitBoardMasks.MaskToCoordinate(startMask.Value);
-    var ec = BitBoardMasks.MaskToCoordinate(endMask.Value);
+        var sc = BitBoardMasks.MaskToCoordinate(startMask.Value);
+        var ec = BitBoardMasks.MaskToCoordinate(endMask.Value);
 
-    if (sc.HasValue && ec.HasValue)
-        bb.Move(sc.Value.row, sc.Value.col, ec.Value.row, ec.Value.col);
-    
-    
-    Console.WriteLine(bb.Pieces);
-    Console.WriteLine(bb.ToFenString());
-    // printBitgrid(bb.WhiteAttackMask().validMoves);
+        if (sc.HasValue && ec.HasValue)
+            bb.Move(sc.Value.row, sc.Value.col, ec.Value.row, ec.Value.col);    
+        
+        Console.WriteLine(bb.Pieces);
+        Console.WriteLine(bb.ToFenString());
+        // printBitgrid(bb.WhiteAttackMask().validMoves);
+    } else if (tokens.Length > 1 && (String.Equals(tokens[0], "fen"))) {
+        bb = FenStringHelper.ParseFenString(String.Join("", tokens[1..]));
+    }
 }
