@@ -57,10 +57,11 @@ while (true)
         if (sc.HasValue && ec.HasValue)
             bb.Move(sc.Value.row, sc.Value.col, ec.Value.row, ec.Value.col);    
         
-        Console.WriteLine(bb.Pieces);
-        Console.WriteLine(bb.ToFenString());
-        // printBitgrid(bb.WhiteAttackMask().validMoves);
     } else if (tokens.Length > 1 && (String.Equals(tokens[0], "fen"))) {
-        bb = FenStringHelper.ParseFenString(String.Join("", tokens[1..]));
+        bb = FenStringHelper.ParseFenString(String.Join(" ", tokens[1..]));
     }
+
+    Console.WriteLine(bb.Pieces);
+    Console.WriteLine(bb.ToFenString());
+ 
 }

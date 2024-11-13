@@ -5,9 +5,7 @@ namespace Chess.Board.BitBoard
     {
         public BitBoardPieces Pieces { get; private set; } = new();
         public BitBoardState State { get; private set; } = new();
-
         public BitBoard() {}
-
         public BitBoard(BitBoardPieces pieces, BitBoardState state)
         {
             Pieces = pieces;
@@ -44,35 +42,15 @@ namespace Chess.Board.BitBoard
 
             return res;
         }
-
-        private bool MoveKingHelper(ulong startpos, ulong endpos, ulong friendly, ulong enemy)
-        {
-            // simply validate that the king is moving to a pseudo legal square
-            var masks = AttackMasks.KingMask(startpos, friendly, enemy);
-            if ((masks.validMoves & endpos) == 0)
-                return false;
-
-            // ! gotchya: king moves away from a checking slider. In order to
-            // ! fix this, we will NOT include the king's position in the friendly
-            // ! mask when calculating the enemy attack mask
-            var fullEnemyAttackMask = AttackMask(enemy, (friendly & ~startpos));
-            // If king's move overlaps with any valid move by the enemy, then it's not a valid move
-            // because it would put the king in check
-            if ((fullEnemyAttackMask.valid & endpos) != 0)
-                return false;
-
-            // if the king is capturing a piece that is blocking, that piece is in the line of sight
-            // of another enemy piece, which means the king cannot capture it
-            if ((fullEnemyAttackMask.blocking & endpos) != 0)
-                return false;
-
-            return true;
-        }
-
-        private bool KingInCheck() 
+        private (ulong friendly, ulong enemy) GetFriendlyAndEnemyPositions()
         {
             ulong friendly = State.WhiteActive ? BitBoardMasks.WhitePositionsMask(Pieces) : BitBoardMasks.BlackPositionsMask(Pieces);
             ulong enemy = State.WhiteActive ? BitBoardMasks.BlackPositionsMask(Pieces) : BitBoardMasks.WhitePositionsMask(Pieces);
+            return (friendly, enemy);
+        }
+        private bool KingInCheck() 
+        {
+            (ulong friendly, ulong enemy) = GetFriendlyAndEnemyPositions();
 
             // we want to treat the enemy as friendly and ourselves as the enemy,
             // so that we can see what is being attacked from the enemy's perspective
@@ -97,53 +75,44 @@ namespace Chess.Board.BitBoard
             // if none of the enemy pieces were attacking the king, then it's not in check.
             return false;
         }
-
-        private bool Move(ulong startpos, ulong endpos)
+        private void AddBitboardMove(ulong startpos, ulong endpos, PieceType startType, PieceType? endType) 
         {
-            // ensure there is a piece to move at the starting square
-            if (Pieces.PieceTypeAtCoordinate(startpos) is not PieceType startType)
-                return false;
-
-            // ensure that the correct player is making the move
-            if (startType.IsWhite() != State.WhiteActive)
-                return false;
-
-            ulong friendly = State.WhiteActive ? BitBoardMasks.WhitePositionsMask(Pieces) : BitBoardMasks.BlackPositionsMask(Pieces);
-            ulong enemy = State.WhiteActive ? BitBoardMasks.BlackPositionsMask(Pieces) : BitBoardMasks.WhitePositionsMask(Pieces);
-
-            // if it's a king, there is special logic for that
-            if (startType == PieceType.BlackKing || startType == PieceType.WhiteKing)
-                if(!MoveKingHelper(startpos, endpos, friendly, enemy))
-                    return false;
-
-            //* otherwise, if it's any other type of piece, we do the following logic...
-
-            // ensure that this is a valid move (pseudolegal)
-            var masks = AttackMasks.PieceTypeMask(startType, startpos, friendly, enemy, State.EnPassantTarget);
-            if ((endpos & masks.validMoves) == 0)
-                return false; 
-
-            // assign new piece places
-            PieceType? endType = Pieces.PieceTypeAtCoordinate(endpos); //! before any piece modifications
             BitBoardMasks.UnsetCoordinate(startpos, ref Pieces.FromPieceType(startType));
             BitBoardMasks.SetCoordinate(endpos, ref Pieces.FromPieceType(startType));
             if (endType.HasValue)
                 BitBoardMasks.UnsetCoordinate(endpos, ref Pieces.FromPieceType(endType.Value));
+            if ((endpos & State.EnPassantTarget) != 0) {
+                if (State.WhiteActive)
+                    BitBoardMasks.UnsetCoordinate(endpos << 8, ref Pieces.FromPieceType(PieceType.BlackPawn));
+                else
+                    BitBoardMasks.UnsetCoordinate(endpos >> 8, ref Pieces.FromPieceType(PieceType.WhitePawn));
+            }
+        }
+        private void RemoveBitboardMove(ulong startpos, ulong endpos, PieceType startType, PieceType? endType)
+        {
+            BitBoardMasks.SetCoordinate(startpos, ref Pieces.FromPieceType(startType));
+            BitBoardMasks.UnsetCoordinate(endpos, ref Pieces.FromPieceType(startType));
+            if (endType.HasValue)
+                BitBoardMasks.SetCoordinate(endpos, ref Pieces.FromPieceType(endType.Value));
 
-            // see if this move causes our king to be in check
+            if ((endpos & State.EnPassantTarget) != 0) {
+                if (State.WhiteActive)
+                    BitBoardMasks.SetCoordinate(endpos << 8, ref Pieces.FromPieceType(PieceType.BlackPawn));
+                else
+                    BitBoardMasks.SetCoordinate(endpos >> 8, ref Pieces.FromPieceType(PieceType.WhitePawn));
+            }
+        }
+        private bool TryBitboardMove(ulong startpos, ulong endpos, PieceType startType, PieceType? endType)
+        {
+            AddBitboardMove(startpos, endpos, startType, endType);
             if (KingInCheck()) {
-                // undo those previous operations
-                BitBoardMasks.SetCoordinate(startpos, ref Pieces.FromPieceType(startType));
-                BitBoardMasks.UnsetCoordinate(endpos, ref Pieces.FromPieceType(startType));
-                if (endType.HasValue)
-                    BitBoardMasks.SetCoordinate(endpos, ref Pieces.FromPieceType(endType.Value));
-                // return false, this move resulted in the king being in check
-
-                Console.WriteLine("King in check!");
+                RemoveBitboardMove(startpos, endpos, startType, endType);
                 return false;
             }
-
-            // handle en passant
+            return true;
+        }
+        private void UpdateState(ulong startpos, ulong endpos, PieceType startType, PieceType? endType)
+        {
             State.EnPassantTarget = 0UL; // reset to 0 since we already got masks.
             if ((startType == PieceType.BlackPawn) && ((endpos >> 16) == startpos))
                 State.EnPassantTarget = endpos >> 8; // 1 row above
@@ -161,10 +130,33 @@ namespace Chess.Board.BitBoard
 
             // update whose turn it is 
             State.WhiteActive = !State.WhiteActive;
+        }
+        private bool Move(ulong startpos, ulong endpos)
+        {
+            // ensure there is a piece to move at the starting square
+            if (Pieces.PieceTypeAtCoordinate(startpos) is not PieceType startType)
+                return false;
+
+            // ensure that the correct player is making the move
+            if (startType.IsWhite() != State.WhiteActive)
+                return false;
+
+            (ulong friendly, ulong enemy) = GetFriendlyAndEnemyPositions();
+
+            // ensure that this is a valid move (pseudolegal)
+            var masks = AttackMasks.PieceTypeMask(startType, startpos, friendly, enemy, State.EnPassantTarget);
+            if ((endpos & masks.validMoves) == 0)
+                return false; 
+
+            // assign new piece places
+            PieceType? endType = Pieces.PieceTypeAtCoordinate(endpos);
+            if(!TryBitboardMove(startpos, endpos, startType, endType))
+                return false;
+
+            UpdateState(startpos, endpos, startType, endType);
 
             return true;
         }
-
         public bool Move(int start_row, int start_col, int end_row, int end_col)
         {
             // convert r,c coordinates to masks
