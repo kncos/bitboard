@@ -1,4 +1,6 @@
 
+using System.Runtime.InteropServices;
+
 namespace Chess.Board.BitBoard
 {
     class BitBoard
@@ -102,13 +104,22 @@ namespace Chess.Board.BitBoard
                     BitBoardMasks.SetCoordinate(endpos >> 8, ref Pieces.FromPieceType(PieceType.WhitePawn));
             }
         }
-        private bool TryBitboardMove(ulong startpos, ulong endpos, PieceType startType, PieceType? endType)
+        private bool TryBitboardMove(ulong startpos, ulong endpos, PieceType startType, PieceType? endType, char promotion)
         {
             AddBitboardMove(startpos, endpos, startType, endType);
+            // ensure move doesn't put king in check
             if (KingInCheck()) {
                 RemoveBitboardMove(startpos, endpos, startType, endType);
                 return false;
             }
+
+            // handle pawn promotion
+            if (startType == PieceType.BlackPawn || startType == PieceType.WhitePawn)
+                if (!HandlePromotion(endpos, promotion)) {
+                    RemoveBitboardMove(startpos, endpos, startType, endType);
+                    return false;
+                }
+            
             return true;
         }
         private void UpdateState(ulong startpos, ulong endpos, PieceType startType, PieceType? endType)
@@ -131,7 +142,35 @@ namespace Chess.Board.BitBoard
             // update whose turn it is 
             State.WhiteActive = !State.WhiteActive;
         }
-        private bool Move(ulong startpos, ulong endpos)
+        private bool HandlePromotion(ulong endpos, char promotion) {
+            // get type to promote to
+            PieceType? pawn_promotion = promotion switch {
+                'q' => State.WhiteActive ? PieceType.WhiteQueen : PieceType.BlackQueen,
+                'b' => State.WhiteActive ? PieceType.WhiteBishop : PieceType.BlackBishop,
+                'r' => State.WhiteActive ? PieceType.WhiteRook : PieceType.BlackRook,
+                'n' => State.WhiteActive ? PieceType.WhiteKnight : PieceType.BlackKnight,
+                _ => null,
+            };
+
+            // handle pawn promotion
+            if (pawn_promotion.HasValue) 
+            {
+                ref ulong component = ref (State.WhiteActive ? ref Pieces.WhitePawn : ref Pieces.BlackPawn);
+                BitBoardMasks.UnsetCoordinate(endpos, ref component);
+                BitBoardMasks.SetCoordinate(endpos, ref Pieces.FromPieceType(pawn_promotion.Value));
+                return true;
+            } 
+
+            // if we're a pawn that should be promoted, but the promotion did not occur,
+            // then this is an invalid move.
+            if (State.WhiteActive && ((endpos & 0xFFUL) != 0)) 
+                return false;
+            if (!State.WhiteActive && ((endpos & (0xFFUL << 56)) != 0)) 
+                return false;
+
+            return true;
+        }
+        public bool Move(ulong startpos, ulong endpos, char promotion='\0')
         {
             // ensure there is a piece to move at the starting square
             if (Pieces.PieceTypeAtCoordinate(startpos) is not PieceType startType)
@@ -150,19 +189,27 @@ namespace Chess.Board.BitBoard
 
             // assign new piece places
             PieceType? endType = Pieces.PieceTypeAtCoordinate(endpos);
-            if(!TryBitboardMove(startpos, endpos, startType, endType))
+            if(!TryBitboardMove(startpos, endpos, startType, endType, promotion))
                 return false;
 
+            // update state variables
             UpdateState(startpos, endpos, startType, endType);
-
             return true;
         }
-        public bool Move(int start_row, int start_col, int end_row, int end_col)
+
+        public List<(ulong startpos, ulong endpos, char promotion)> GetValidMoves() 
+        {
+            var res = new List<(ulong, ulong, char)>();
+
+            return res;
+        }
+
+        public bool Move(int start_row, int start_col, int end_row, int end_col, char promotion='\0')
         {
             // convert r,c coordinates to masks
             ulong startpos = BitBoardMasks.CoordinateToMask(start_row, start_col) ?? 0UL;
             ulong endpos = BitBoardMasks.CoordinateToMask(end_row, end_col) ?? 0UL;
-            return Move(startpos, endpos);
+            return Move(startpos, endpos, promotion);
         }
     }
 }

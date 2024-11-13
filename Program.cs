@@ -54,8 +54,12 @@ while (true)
         var sc = BitBoardMasks.MaskToCoordinate(startMask.Value);
         var ec = BitBoardMasks.MaskToCoordinate(endMask.Value);
 
+        char pawn_promotion = '\0';
+        if (tokens[0].Length == 5)
+            pawn_promotion = tokens[0][4];
+
         if (sc.HasValue && ec.HasValue)
-            bb.Move(sc.Value.row, sc.Value.col, ec.Value.row, ec.Value.col);    
+            bb.Move(sc.Value.row, sc.Value.col, ec.Value.row, ec.Value.col, pawn_promotion);
         
     } else if (tokens.Length > 1 && (String.Equals(tokens[0], "fen"))) {
         bb = FenStringHelper.ParseFenString(String.Join(" ", tokens[1..]));
