@@ -1,10 +1,49 @@
 
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 namespace Chess.Board.BitBoard
 {
+    enum CastlingMove
+    {
+        blackKingside = 0, blackQueenside, whiteKingside, whiteQueenside
+    }
+
     class BitBoard
     {
+        // the bits are reversed because the `0th` bit corresponds with the top left on the chess board
+        private const ulong blackKingsidePath = 0b0110_0000UL; //0b00000110;
+        private const ulong blackQueensidePath = 0b00001110UL; // 0b01110000;
+        private const ulong blackKingDefaultPos = 0b0001_0000UL; // 0b0000_1000UL;
+        private const ulong blackQueensideRookDefaultPos = 0b0000_0001UL; // 0b1000_0000UL;
+        private const ulong blackKingsideRookDefaultPos = 0b1000_0000UL; // 0b0000_0001UL;
+        private const ulong blackQueensideCastleEndpos = 0b0000_0100UL; // 0b0010_0000UL;
+        private const ulong blackKingsideCastleEndpos = 0b0100_0000UL; // 0b0000_0010UL;
+        private const ulong whiteKingsidePath = blackKingsidePath << 56;
+        private const ulong whiteQueensidePath = blackQueensidePath << 56;
+        private const ulong whiteKingDefaultPos = blackKingDefaultPos << 56;
+        private const ulong whiteQueensideRookDefaultPos = blackQueensideRookDefaultPos << 56;
+        private const ulong whiteKingsideRookDefaultPos = blackKingsideRookDefaultPos << 56;
+        private const ulong whiteQueensideCastleEndpos = blackQueensideCastleEndpos << 56;
+        private const ulong whiteKingsideCastleEndpos = blackKingsideCastleEndpos << 56;
+
+        private CastlingMove? getCastlingMoveType(ulong startpos, ulong endpos) => (startpos, endpos) switch {
+            (blackKingDefaultPos, blackKingsideCastleEndpos) => CastlingMove.blackKingside,
+            (blackKingDefaultPos, blackQueensideCastleEndpos) => CastlingMove.blackQueenside,
+            (whiteKingDefaultPos, whiteKingsideCastleEndpos) => CastlingMove.whiteKingside,
+            (whiteKingDefaultPos, whiteQueensideCastleEndpos) => CastlingMove.whiteQueenside,
+            _ => null,
+        };
+
+        private (ulong king, ulong rook) getCastlingPieceCoords(CastlingMove move) => move switch {
+            CastlingMove.blackKingside => (blackKingDefaultPos, blackKingsideRookDefaultPos),
+            CastlingMove.blackQueenside => (blackKingDefaultPos, blackQueensideRookDefaultPos),
+            CastlingMove.whiteKingside => (whiteKingDefaultPos, whiteKingsideRookDefaultPos),
+            CastlingMove.whiteQueenside => (whiteKingDefaultPos, whiteQueensideRookDefaultPos),
+            _ => (0UL, 0UL),
+        };
+
         public BitBoardPieces Pieces { get; private set; } = new();
         public BitBoardState State { get; private set; } = new();
         public BitBoard() {}
@@ -114,11 +153,12 @@ namespace Chess.Board.BitBoard
             }
 
             // handle pawn promotion
-            if (startType == PieceType.BlackPawn || startType == PieceType.WhitePawn)
+            if (startType == PieceType.BlackPawn || startType == PieceType.WhitePawn) {
                 if (!HandlePromotion(endpos, promotion)) {
                     RemoveBitboardMove(startpos, endpos, startType, endType);
                     return false;
                 }
+            }
             
             return true;
         }
@@ -129,6 +169,30 @@ namespace Chess.Board.BitBoard
                 State.EnPassantTarget = endpos >> 8; // 1 row above
             else if ((startType == PieceType.WhitePawn) && ((endpos << 16) == startpos))
                 State.EnPassantTarget = endpos << 8; // 1 row below
+
+            // remove castling ability if king moved
+            switch (startType) {
+                case PieceType.BlackKing:
+                    State.BlackKingside = false;
+                    State.BlackQueenside = false;
+                    break;
+                case PieceType.WhiteKing:
+                    State.WhiteKingside = false;
+                    State.WhiteQueenside = false;
+                    break;
+                case PieceType.BlackRook:
+                    if ((startpos & 1UL) != 0) 
+                        State.BlackQueenside = false;
+                    else if ((startpos & (1UL << 7)) != 0)
+                        State.BlackKingside = false;
+                    break;
+                case PieceType.WhiteRook:
+                    if ((startpos & (1UL<<56)) != 0)
+                        State.WhiteQueenside = false;
+                    else if ((startpos & (1UL << 63)) != 0)
+                        State.WhiteKingside = false;
+                    break;
+            }
 
             // update clocks
             if (!startType.IsWhite())
@@ -142,7 +206,64 @@ namespace Chess.Board.BitBoard
             // update whose turn it is 
             State.WhiteActive = !State.WhiteActive;
         }
-        private bool HandlePromotion(ulong endpos, char promotion) {
+        private bool TryCastle(ulong startpos, ulong endpos)
+        {
+            // get the castling move associated with this start/endpos for the king
+            CastlingMove? castle = getCastlingMoveType(startpos, endpos);
+            if (!castle.HasValue)
+                return false;
+
+            // get the position of the king and the rook. Of course, startpos == kingpos
+            (ulong kingpos, ulong rookpos) = getCastlingPieceCoords(castle.Value);
+            if (kingpos == 0UL || rookpos == 0UL)
+                return false;
+
+            // get the path depending on which castling move we're doing.
+            // will be zero if we cannot castle at this step
+            ulong path = castle switch {
+                CastlingMove.blackKingside when State.BlackKingside => blackKingsidePath,
+                CastlingMove.blackQueenside when State.BlackQueenside => blackQueensidePath,
+                CastlingMove.whiteKingside when State.WhiteKingside => whiteKingsidePath,
+                CastlingMove.whiteQueenside when State.WhiteQueenside => whiteQueensidePath,
+                _ => 0UL,
+            };
+            // if path is zero, this is an invalid castling move
+            if (path == 0)
+                return false;
+
+            // check if anything is in the path
+            var allPositions = Pieces.AllPositionsMask();
+            if ((allPositions & path) != 0)
+                return false;
+
+            // get enemy attack mask
+            (ulong friendly, ulong enemy) = GetFriendlyAndEnemyPositions();
+            var fullEnemyAttackMask = AttackMask(enemy, friendly);
+
+            // check if the king's starting position is under attack,
+            // or the squares it must move through are under attack.
+            // if so, can't castle.
+            ulong kingPath = kingpos | path;
+            if ((kingPath & fullEnemyAttackMask.valid) != 0)
+                return false;
+
+            return castle switch {
+                CastlingMove.blackKingside => 
+                    TryBitboardMove(startpos, blackKingsideCastleEndpos, PieceType.BlackKing, null, '\0')
+                    && TryBitboardMove(blackKingsideRookDefaultPos, blackKingsideCastleEndpos>>1, PieceType.BlackRook, null, '\0'),
+                CastlingMove.blackQueenside =>
+                    TryBitboardMove(startpos, blackQueensideCastleEndpos, PieceType.BlackKing, null, '\0')
+                    && TryBitboardMove(blackQueensideRookDefaultPos, blackQueensideCastleEndpos<<1, PieceType.BlackRook, null, '\0'),
+                CastlingMove.whiteKingside => 
+                    TryBitboardMove(startpos, whiteKingsideCastleEndpos, PieceType.WhiteKing, null, '\0')
+                    && TryBitboardMove(whiteKingsideRookDefaultPos, whiteKingsideCastleEndpos>>1, PieceType.WhiteRook, null, '\0'),
+                CastlingMove.whiteQueenside =>
+                    TryBitboardMove(startpos, whiteQueensideCastleEndpos, PieceType.WhiteKing, null, '\0')
+                    && TryBitboardMove(whiteQueensideRookDefaultPos, whiteQueensideCastleEndpos<<1, PieceType.WhiteRook, null, '\0'),
+            };
+        }
+        private bool HandlePromotion(ulong endpos, char promotion) 
+        {
             // get type to promote to
             PieceType? pawn_promotion = promotion switch {
                 'q' => State.WhiteActive ? PieceType.WhiteQueen : PieceType.BlackQueen,
@@ -184,8 +305,20 @@ namespace Chess.Board.BitBoard
 
             // ensure that this is a valid move (pseudolegal)
             var masks = AttackMasks.PieceTypeMask(startType, startpos, friendly, enemy, State.EnPassantTarget);
-            if ((endpos & masks.validMoves) == 0)
-                return false; 
+            if ((endpos & masks.validMoves) == 0) {
+                // if the start type is a king, it might be a castling move, so try that
+                // if this move would be invalid under normal circumstances. If this works,
+                // then we can castle and it's a valid move
+                if (startType != PieceType.BlackKing && startType != PieceType.WhiteKing)
+                    return false;
+
+                if (TryCastle(startpos, endpos)) {
+                    UpdateState(startpos, endpos, startType, null);
+                    return true;
+                }
+
+                return false;
+            }
 
             // assign new piece places
             PieceType? endType = Pieces.PieceTypeAtCoordinate(endpos);
